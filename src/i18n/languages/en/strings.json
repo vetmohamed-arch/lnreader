@@ -704,7 +704,9 @@
     "noNextChapter": "There's no next chapter",
     "noPreviousChapter": "There's no previous chapter",
     "searchMinLength": "Enter at least %{count} characters to search",
-    "searchPlaceholder": "Search chapter"
+    "searchPlaceholder": "Search chapter",
+    "translateToArabic": "Translate to Arabic",
+    "translationFailed": "Translation failed, showing the original text"
   },
   "readerSettings": {
     "autoScrollInterval": "Scroll interval (seconds)",
