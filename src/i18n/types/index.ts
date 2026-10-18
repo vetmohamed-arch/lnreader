@@ -600,6 +600,8 @@ export interface StringMap {
   'readerScreen.noPreviousChapter': 'string';
   'readerScreen.searchMinLength': 'string';
   'readerScreen.searchPlaceholder': 'string';
+  'readerScreen.translateToArabic': 'string';
+  'readerScreen.translationFailed': 'string';
   'readerSettings.autoScrollInterval': 'string';
   'readerSettings.autoScrollOffset': 'string';
   'readerSettings.backgroundColor': 'string';

@@ -15,7 +15,8 @@ import {
   useTracker,
 } from '@hooks/persisted';
 import { fetchChapter, fetchPage } from '@services/plugin/fetch';
-import { NOVEL_STORAGE } from '@utils/Storages';
+import { NOVEL_STORAGE, TRANSLATION_STORAGE } from '@utils/Storages';
+import { translateHtml } from '@services/translate/microsoftTranslator';
 import {
   RefObject,
   useCallback,
@@ -76,6 +77,7 @@ export default function useChapter(
     volumeButtonsOffset,
     pageReader,
     pageReaderInvertVolumeButtons,
+    translateToArabic,
   } = useChapterGeneralSettings();
   const { incognitoMode } = useLibrarySettings();
   const { timeTrackingEnabled, inactivityTimeoutMs } = useAppSettings();
@@ -102,6 +104,7 @@ export default function useChapter(
   const adjacentChapterRef = useRef<AdjacentChapters>(NO_ADJACENT_CHAPTERS);
   const excludedScanlatorsRef = useRef(novelSettings?.excludedScanlators);
   const hiddenRef = useRef(hidden);
+  const translateRef = useRef(Boolean(translateToArabic));
   /** Increments on every load so a superseded load can never publish state. */
   const loadIdRef = useRef(0);
 
@@ -178,6 +181,35 @@ export default function useChapter(
   );
 
   /**
+   * Translations are stored apart from downloads so a translated chapter
+   * stays readable offline without being mistaken for a downloaded one.
+   */
+  const loadTranslatedHtml = useCallback(
+    async (chap: ChapterInfo, html: string) => {
+      const dir = `${TRANSLATION_STORAGE}/ar/${novel.pluginId}/${chap.novelId}`;
+      const filePath = `${dir}/${chap.id}.html`;
+      try {
+        return await NativeFile.readFile(filePath);
+      } catch {
+        // Not translated yet.
+      }
+      try {
+        const translated = `<div dir="rtl" lang="ar" style="text-align: right">${await translateHtml(
+          html,
+          'ar',
+        )}</div>`;
+        await NativeFile.mkdir(dir);
+        await NativeFile.writeFile(filePath, translated);
+        return translated;
+      } catch {
+        showToast(getString('readerScreen.translationFailed'));
+        return html;
+      }
+    },
+    [novel.pluginId],
+  );
+
+  /**
    * Returns render-ready (sanitized) chapter HTML, reusing the novel-scoped
    * cache. Sanitizing before caching keeps `sanitize-html` – which is the most
    * expensive synchronous step of a chapter load – off the critical path for
@@ -200,8 +232,11 @@ export default function useChapter(
         );
         if (!text.trim()) {
           chapterTextCache.remove(chap.id);
+          return sanitized;
         }
-        return sanitized;
+        return translateRef.current
+          ? loadTranslatedHtml(chap, sanitized)
+          : sanitized;
       });
       chapterTextCache.write(chap.id, pending);
       // Never keep a failed load in the cache, otherwise a retry would
@@ -210,7 +245,13 @@ export default function useChapter(
 
       return pending;
     },
-    [chapterTextCache, loadChapterText, novel.name, novel.pluginId],
+    [
+      chapterTextCache,
+      loadChapterText,
+      loadTranslatedHtml,
+      novel.name,
+      novel.pluginId,
+    ],
   );
 
   const prefetchChapter = useCallback(
@@ -523,6 +564,19 @@ export default function useChapter(
     initialLoadRef.current = true;
     getChapter();
   }, [getChapter]);
+
+  // Switching translation on or off invalidates every cached chapter text,
+  // including prefetched neighbours.
+  useEffect(() => {
+    const enabled = Boolean(translateToArabic);
+    if (translateRef.current === enabled) {
+      return;
+    }
+    translateRef.current = enabled;
+    chapterTextCache.clear();
+    setLoading(true);
+    getChapter();
+  }, [translateToArabic, chapterTextCache, getChapter]);
 
   const refetch = useCallback(() => {
     chapterTextCache.remove(chapterRef.current.id);

@@ -16,6 +16,7 @@ import { useNovelLayout } from '@screens/novel/NovelContext';
 import ReaderSearchbar from './ReaderSearchbar';
 import { ReaderSearchResult } from '../types';
 import { getString } from '@i18n/translations';
+import { useChapterGeneralSettings } from '@hooks/persisted';
 
 interface ReaderAppbarProps {
   theme: ThemeColors;
@@ -55,6 +56,8 @@ const ReaderAppbar = ({
   const { chapter, novel, refetch } = useChapterContext();
   const { statusBarHeight } = useNovelLayout();
   const [menuVisible, setMenuVisible] = useState(false);
+  const { translateToArabic, setChapterGeneralSettings } =
+    useChapterGeneralSettings();
 
   const runMenuAction = useCallback((action: () => void) => {
     setMenuVisible(false);
@@ -140,6 +143,17 @@ const ReaderAppbar = ({
           padding={12}
           onPress={() => setSearchVisible(current => !current)}
           color={searchVisible ? theme.primary : theme.onSurface}
+          theme={theme}
+        />
+        <IconButtonV2
+          accessibilityLabel={getString('readerScreen.translateToArabic')}
+          name="translate"
+          size={24}
+          padding={12}
+          onPress={() =>
+            setChapterGeneralSettings({ translateToArabic: !translateToArabic })
+          }
+          color={translateToArabic ? theme.primary : theme.onSurface}
           theme={theme}
         />
         <IconButtonV2

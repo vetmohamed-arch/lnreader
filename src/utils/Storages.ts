@@ -7,3 +7,4 @@ export const ROOT_STORAGE = NativeFile.ExternalDirectoryPath || documentStorage;
 export const LEGACY_PLUGIN_STORAGE = ROOT_STORAGE + '/Plugins';
 export const PLUGIN_STORAGE = documentStorage + '/Plugins';
 export const NOVEL_STORAGE = ROOT_STORAGE + '/Novels';
+export const TRANSLATION_STORAGE = ROOT_STORAGE + '/Translations';
