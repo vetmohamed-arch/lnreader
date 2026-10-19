@@ -29,11 +29,14 @@ export interface AppRelease {
   downloadUrl?: string;
 }
 
+// Builds of this fork are published as `build-<versionCode>` releases.
 const LATEST_RELEASE_URL =
-  'https://api.github.com/repos/LNReader/lnreader/releases/latest';
+  'https://api.github.com/repos/vetmohamed-arch/lnreader-arabic/releases/latest';
+const BUILD_TAG = /^build-(\d+)$/;
 const LAST_UPDATE_CHECK_KEY = 'LAST_UPDATE_CHECK';
 const IGNORED_UPDATE_VERSION_KEY = 'IGNORED_UPDATE_VERSION';
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+// New builds land often while features are being tried out.
+const UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000;
 
 const getReleaseDownloadUrl = async (
   assets: GithubReleaseAsset[] = [],
@@ -72,10 +75,14 @@ const shouldCheckForUpdate = (): boolean => {
     return true;
   }
 
-  return Date.now() - lastCheckTime >= ONE_DAY_MS;
+  return Date.now() - lastCheckTime >= UPDATE_CHECK_INTERVAL_MS;
 };
 
 const isNewerVersion = (versionTag: string): boolean => {
+  const build = BUILD_TAG.exec(versionTag);
+  if (build) {
+    return Number(build[1]) > Number(DeviceInfo.getBuildNumber());
+  }
   const normalizedVersion = versionTag.replace(/[^\d.]/, '');
   return newer(normalizedVersion, `${version}`);
 };

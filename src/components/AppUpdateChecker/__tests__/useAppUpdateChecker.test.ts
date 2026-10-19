@@ -16,6 +16,7 @@ jest.mock('react-native-device-info', () => ({
   __esModule: true,
   default: {
     supportedAbis: jest.fn().mockResolvedValue(['arm64-v8a']),
+    getBuildNumber: jest.fn().mockReturnValue('105'),
   },
 }));
 
@@ -87,5 +88,23 @@ describe('useAppUpdateChecker', () => {
     const { result } = renderHook(useAppUpdateChecker);
 
     await waitFor(() => expect(result.current.isNewVersion).toBe(true));
+  });
+
+  it('compares build-<versionCode> releases with the installed build', async () => {
+    for (const [tag, expected] of [
+      ['build-106', true],
+      ['build-105', false],
+    ] as const) {
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue({ ...mockRelease, tag_name: tag }),
+      } as unknown as Response);
+
+      const { result, unmount } = renderHook(useAppUpdateChecker);
+
+      await waitFor(() => expect(result.current.latestRelease).toBeDefined());
+      expect(result.current.isNewVersion).toBe(expected);
+      unmount();
+    }
   });
 });

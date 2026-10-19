@@ -27,4 +27,8 @@ export const readerFonts: Font[] = [
   { fontFamily: 'lato', name: 'Lato' },
   { fontFamily: 'pt-serif', name: 'PT Serif' },
   { fontFamily: 'OpenDyslexic3-Regular', name: 'OpenDyslexic' },
+  { fontFamily: 'noto-naskh-arabic', name: 'نوتو نسخ (Noto Naskh Arabic)' },
+  { fontFamily: 'amiri', name: 'أميري (Amiri)' },
+  { fontFamily: 'cairo', name: 'القاهرة (Cairo)' },
+  { fontFamily: 'tajawal', name: 'تجوّل (Tajawal)' },
 ];

@@ -66,7 +66,6 @@ type Paragraph = { text: string } | { html: string };
  * Splits chapter HTML into paragraphs of plain text. Images are kept as raw
  * HTML so they still render; other markup is dropped.
  */
-
 export const extractParagraphs = (html: string): Paragraph[] =>
   html
     .split(/<\/(?:p|div|h[1-6]|li|blockquote)>|<br\s*\/?>/i)

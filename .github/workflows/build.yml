@@ -69,6 +69,9 @@ jobs:
     if: needs.check-preview.outputs.should-build == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: write
 
     steps:
       - name: Checkout Repository
@@ -166,6 +169,19 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
+
+      - name: Publish Release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          gh release create "build-$PRERELEASE_VERSION_CODE" \
+            "android/app/build/outputs/apk/preRelease/$PRERELEASE_APK_NAME" \
+            --target "$GITHUB_SHA" \
+            --title "$PRERELEASE_VERSION_NAME" \
+            --notes "$COMMIT_MESSAGE" \
+            --latest
 
       - name: Check Discord Notification
         id: discord
