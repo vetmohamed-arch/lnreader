@@ -1,5 +1,6 @@
 import NativeFile from '@modules/native-file';
 import {
+  detectSource,
   effectiveGlossary,
   getChapterTranslation,
   renderTranslation,
@@ -162,5 +163,15 @@ describe('effectiveGlossary', () => {
   it('has no duplicate or malformed built-in lines', () => {
     const lines = BUILTIN_GLOSSARY.split('\n').filter(l => l.trim());
     expect(parseGlossary(BUILTIN_GLOSSARY)).toHaveLength(lines.length);
+  });
+});
+
+describe('detectSource', () => {
+  it('sends English chapters as English so glossary Arabic is not mistaken for the source', async () => {
+    expect(detectSource(['He gathered Qi', 'The Sect frowned'])).toBe('en');
+    expect(detectSource(['他运转了真气'])).toBe('');
+    mockFetch.mockImplementation(edgeEcho);
+    await translateChapterParts('<p>Gather Qi now</p>', 'Qi = تشي');
+    expect(mockFetch.mock.calls[0][0]).toContain('from=en&');
   });
 });

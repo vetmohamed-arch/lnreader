@@ -26,12 +26,16 @@ export type TranslatedPart =
   | { tag: string; original: string; text: string };
 
 /** Edge first since it reads best; Google when Edge is down or changed. */
-export const translateWithFallback = async (texts: string[], to = 'ar') => {
+export const translateWithFallback = async (
+  texts: string[],
+  to = 'ar',
+  from = '',
+) => {
   try {
-    return await translateWithEdge(texts, to);
+    return await translateWithEdge(texts, to, from);
   } catch (edgeError: any) {
     try {
-      return await translateWithGoogle(texts, to);
+      return await translateWithGoogle(texts, to, from);
     } catch (googleError: any) {
       throw new Error(
         `Edge: ${edgeError?.message ?? edgeError}; Google: ${
@@ -40,6 +44,21 @@ export const translateWithFallback = async (texts: string[], to = 'ar') => {
       );
     }
   }
+};
+
+/**
+ * Glossary terms put Arabic inside the source text, and auto-detection then
+ * takes such a paragraph for Arabic and returns it untranslated. So a chapter
+ * that is mostly Latin letters is sent as English; anything else is detected.
+ */
+export const detectSource = (texts: string[]) => {
+  const all = texts.join('');
+  const latin = all.match(/[A-Za-z]/g)?.length ?? 0;
+  const letters =
+    all.match(
+      /[A-Za-z\u00C0-\u024F\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF\u0400-\u04FF]/g,
+    )?.length ?? 0;
+  return letters && latin / letters > 0.8 ? 'en' : '';
 };
 
 export const translateChapterParts = async (
@@ -51,7 +70,12 @@ export const translateChapterParts = async (
   const texts = parts.flatMap(part =>
     'text' in part ? [applyGlossary(part.text, entries)] : [],
   );
-  const translated = await translateWithFallback(texts);
+  const originals = parts.flatMap(part => ('text' in part ? [part.text] : []));
+  const translated = await translateWithFallback(
+    texts,
+    'ar',
+    detectSource(originals),
+  );
   let i = 0;
   return parts.map(part =>
     'text' in part

@@ -18,9 +18,13 @@ const BROWSER_HEADERS = {
 
 type TranslationItem = { translations?: { text: string }[] } | string;
 
-const requestTranslation = async (texts: string[], to: string) => {
+const requestTranslation = async (
+  texts: string[],
+  to: string,
+  from: string,
+) => {
   const res = await fetch(
-    `${TRANSLATE_URL}?from=&to=${to}&isEnterpriseClient=false`,
+    `${TRANSLATE_URL}?from=${from}&to=${to}&isEnterpriseClient=false`,
     {
       method: 'POST',
       headers: { ...BROWSER_HEADERS, 'Content-Type': 'application/json' },
@@ -85,13 +89,14 @@ export const extractParagraphs = (html: string): Paragraph[] =>
       ];
     });
 
-export const translateTexts = async (texts: string[], to = 'ar') => {
+/** `from` is empty to let the service detect the source language. */
+export const translateTexts = async (texts: string[], to = 'ar', from = '') => {
   const translated: string[] = [];
   let batch: string[] = [];
   let size = 0;
   const flush = async () => {
     if (batch.length) {
-      translated.push(...(await requestTranslation(batch, to)));
+      translated.push(...(await requestTranslation(batch, to, from)));
     }
     batch = [];
     size = 0;
