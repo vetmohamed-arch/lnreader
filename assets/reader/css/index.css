@@ -63,6 +63,32 @@ body {
   font-family: var(--readerSettings-fontFamily);
 }
 
+/* Arabic translation: follows the reader's alignment, read right to left. */
+.translated-ar {
+  direction: rtl;
+  text-align: var(--readerSettings-rtlTextAlign);
+}
+
+.translated-ar p {
+  margin: 0 0 1em;
+}
+
+.translated-ar h1,
+.translated-ar h2,
+.translated-ar h3,
+.translated-ar h4,
+.translated-ar h5,
+.translated-ar h6 {
+  text-align: center;
+  margin: 0.8em 0;
+}
+
+.translated-ar blockquote {
+  margin: 1em 0;
+  padding-inline-start: 1em;
+  border-inline-start: 3px solid var(--theme-primary);
+}
+
 #LNReader-chapter {
   padding-left: var(--readerSettings-padding);
   padding-right: var(--readerSettings-padding);
@@ -201,11 +227,7 @@ td {
 mark.lnreader-search-match {
   border-radius: 2px;
   color: inherit;
-  background-color: color-mix(
-    in srgb,
-    var(--theme-tertiary) 55%,
-    transparent
-  );
+  background-color: color-mix(in srgb, var(--theme-tertiary) 55%, transparent);
 }
 
 mark.lnreader-search-match-active {

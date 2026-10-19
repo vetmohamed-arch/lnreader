@@ -60,23 +60,28 @@ const decodeEntities = (text: string) =>
 const escapeHtml = (text: string) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-type Paragraph = { text: string } | { html: string };
+type Paragraph = { text: string; tag: string } | { html: string };
+
+// Block tags kept around translated text; anything else becomes a paragraph.
+const KEPT_TAG = /<(h[1-6]|blockquote)\b/i;
 
 /**
- * Splits chapter HTML into paragraphs of plain text. Images are kept as raw
- * HTML so they still render; other markup is dropped.
+ * Splits chapter HTML into paragraphs of plain text, remembering headings and
+ * quotes. Images are kept as raw HTML so they still render; inline markup is
+ * dropped.
  */
 export const extractParagraphs = (html: string): Paragraph[] =>
   html
     .split(/<\/(?:p|div|h[1-6]|li|blockquote)>|<br\s*\/?>/i)
     .flatMap((block): Paragraph[] => {
       const images = block.match(/<img\b[^>]*>/gi)?.join('') ?? '';
+      const tag = block.match(KEPT_TAG)?.[1].toLowerCase() ?? 'p';
       const text = decodeEntities(block.replace(/<[^>]*>/g, ''))
         .replace(/\s+/g, ' ')
         .trim();
       return [
         ...(images ? [{ html: images }] : []),
-        ...(text ? [{ text }] : []),
+        ...(text ? [{ text, tag }] : []),
       ];
     });
 
@@ -113,7 +118,7 @@ export const translateHtml = async (html: string, to = 'ar') => {
   return parts
     .map(part =>
       'text' in part
-        ? `<p>${escapeHtml(translated[i++] ?? '')}</p>`
+        ? `<${part.tag}>${escapeHtml(translated[i++] ?? '')}</${part.tag}>`
         : part.html,
     )
     .join('');

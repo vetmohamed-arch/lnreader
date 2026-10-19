@@ -337,6 +337,11 @@ const WebViewReader: React.FC<WebViewReaderProps> = ({
                 --readerSettings-textSize: ${initialReaderSettings.textSize}px;
                 --readerSettings-textColor: ${initialReaderSettings.textColor};
                 --readerSettings-textAlign: ${initialReaderSettings.textAlign};
+                --readerSettings-rtlTextAlign: ${
+                  initialReaderSettings.textAlign === 'left'
+                    ? 'right'
+                    : initialReaderSettings.textAlign
+                };
                 --readerSettings-lineHeight: ${
                   initialReaderSettings.lineHeight
                 };

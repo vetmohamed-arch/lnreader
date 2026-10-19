@@ -20,12 +20,14 @@ describe('extractParagraphs', () => {
   it('turns block HTML into plain-text paragraphs and keeps images', () => {
     expect(
       extractParagraphs(
-        '<p>Hello <b>world</b> &amp; you</p><br><img src="a.png"><p>  </p><div>Bye&nbsp;now</div>',
+        '<h2>Chapter 1</h2><p>Hello <b>world</b> &amp; you</p><br><img src="a.png"><p>  </p><div>Bye&nbsp;now</div><blockquote>Hmm</blockquote>',
       ),
     ).toEqual([
-      { text: 'Hello world & you' },
+      { text: 'Chapter 1', tag: 'h2' },
+      { text: 'Hello world & you', tag: 'p' },
       { html: '<img src="a.png">' },
-      { text: 'Bye now' },
+      { text: 'Bye now', tag: 'p' },
+      { text: 'Hmm', tag: 'blockquote' },
     ]);
   });
 });

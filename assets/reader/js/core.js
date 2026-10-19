@@ -111,6 +111,11 @@ window.reader = new (function () {
       '--readerSettings-textAlign',
       settings.textAlign,
     );
+    // Arabic translations read right to left, so "left" means the line start.
+    document.documentElement.style.setProperty(
+      '--readerSettings-rtlTextAlign',
+      settings.textAlign === 'left' ? 'right' : settings.textAlign,
+    );
     document.documentElement.style.setProperty(
       '--readerSettings-lineHeight',
       settings.lineHeight,

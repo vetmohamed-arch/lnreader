@@ -186,19 +186,18 @@ export default function useChapter(
    */
   const loadTranslatedHtml = useCallback(
     async (chap: ChapterInfo, html: string) => {
-      const dir = `${TRANSLATION_STORAGE}/ar/${novel.pluginId}/${chap.novelId}`;
+      const dir = `${TRANSLATION_STORAGE}/v2/ar/${novel.pluginId}/${chap.novelId}`;
       const filePath = `${dir}/${chap.id}.html`;
+      const wrap = (body: string) =>
+        `<div class="translated-ar" dir="rtl" lang="ar">${body}</div>`;
       try {
-        return await NativeFile.readFile(filePath);
+        return wrap(await NativeFile.readFile(filePath));
       } catch {
         // Not translated yet.
       }
       let translated: string;
       try {
-        translated = `<div dir="rtl" lang="ar" style="text-align: right">${await translateHtml(
-          html,
-          'ar',
-        )}</div>`;
+        translated = await translateHtml(html, 'ar');
       } catch (e: any) {
         showToast(
           `${getString('readerScreen.translationFailed')}: ${e?.message ?? e}`,
@@ -210,7 +209,7 @@ export default function useChapter(
         await NativeFile.mkdir(dir);
         await NativeFile.writeFile(filePath, translated);
       } catch {}
-      return translated;
+      return wrap(translated);
     },
     [novel.pluginId],
   );
