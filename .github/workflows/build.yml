@@ -1,6 +1,9 @@
 name: Build Preview
 
 on:
+  push:
+    branches:
+      - master
   schedule:
     - cron: '30 0 * * *'
   workflow_dispatch:
