@@ -714,6 +714,8 @@
       "onDownload": "Translate when downloading",
       "onDownloadDescription": "Downloaded chapters open in Arabic, even offline",
       "glossary": "Glossary",
+      "builtinGlossary": "Built-in cultivation terms",
+      "builtinGlossaryDescription": "%{count} common xianxia terms (Dantian, Nascent Soul, Spirit Stone...). Your own entries below win over them.",
       "glossaryDescription": "One term per line, like: Dantian = الدانتيان. Terms always translate this way. An Arabic term fixes a recurring mistake.",
       "glossaryPlaceholder": "Qi = تشي\nNine Star Hegemon Body Art = فن جسد المهيمن ذو النجوم التسعة",
       "save": "Save glossary",

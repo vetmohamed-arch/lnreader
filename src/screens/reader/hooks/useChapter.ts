@@ -17,6 +17,7 @@ import {
 import { fetchChapter, fetchPage } from '@services/plugin/fetch';
 import { NOVEL_STORAGE } from '@utils/Storages';
 import {
+  effectiveGlossary,
   getChapterTranslation,
   renderTranslation,
 } from '@services/translate/chapterTranslation';
@@ -83,6 +84,7 @@ export default function useChapter(
     translateToArabic,
     translationBilingual,
     translationGlossary,
+    translationBuiltinGlossary,
   } = useChapterGeneralSettings();
   const { incognitoMode } = useLibrarySettings();
   const { timeTrackingEnabled, inactivityTimeoutMs } = useAppSettings();
@@ -113,9 +115,17 @@ export default function useChapter(
     () => ({
       enabled: Boolean(translateToArabic),
       bilingual: Boolean(translationBilingual),
-      glossary: translationGlossary ?? '',
+      glossary: effectiveGlossary(
+        translationGlossary ?? '',
+        translationBuiltinGlossary !== false,
+      ),
     }),
-    [translateToArabic, translationBilingual, translationGlossary],
+    [
+      translateToArabic,
+      translationBilingual,
+      translationGlossary,
+      translationBuiltinGlossary,
+    ],
   );
   const translateRef = useRef(translationSettings);
   /** Increments on every load so a superseded load can never publish state. */

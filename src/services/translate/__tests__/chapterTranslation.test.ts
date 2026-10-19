@@ -1,10 +1,12 @@
 import NativeFile from '@modules/native-file';
 import {
+  effectiveGlossary,
   getChapterTranslation,
   renderTranslation,
   translateChapterParts,
 } from '../chapterTranslation';
 import { applyGlossary, glossaryKey, parseGlossary } from '../glossary';
+import { BUILTIN_GLOSSARY } from '../builtinGlossary';
 
 jest.mock('@utils/Storages', () => ({ TRANSLATION_STORAGE: '/t' }));
 
@@ -144,5 +146,21 @@ describe('getChapterTranslation', () => {
     ).resolves.toEqual([{ tag: 'p', original: 'A', text: 'ar:أ' }]);
     const path = jest.mocked(NativeFile.writeFile).mock.calls[0][0];
     expect(path).toMatch(/^\/t\/v3\/ar\/fz\/1\/7-[a-z0-9]+\.json$/);
+  });
+});
+
+describe('effectiveGlossary', () => {
+  it('lets user entries override built-in ones', () => {
+    const entries = parseGlossary(effectiveGlossary('Dantian = البطن', true));
+    expect(entries.filter(e => e.from === 'Dantian')).toEqual([
+      { from: 'Dantian', to: 'البطن' },
+    ]);
+    expect(entries.length).toBeGreaterThan(50);
+    expect(parseGlossary(effectiveGlossary('a = ب', false))).toHaveLength(1);
+  });
+
+  it('has no duplicate or malformed built-in lines', () => {
+    const lines = BUILTIN_GLOSSARY.split('\n').filter(l => l.trim());
+    expect(parseGlossary(BUILTIN_GLOSSARY)).toHaveLength(lines.length);
   });
 });

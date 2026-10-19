@@ -608,6 +608,8 @@ export interface StringMap {
   'readerScreen.translation.onDownload': 'string';
   'readerScreen.translation.onDownloadDescription': 'string';
   'readerScreen.translation.glossary': 'string';
+  'readerScreen.translation.builtinGlossary': 'string';
+  'readerScreen.translation.builtinGlossaryDescription': 'string';
   'readerScreen.translation.glossaryDescription': 'string';
   'readerScreen.translation.glossaryPlaceholder': 'string';
   'readerScreen.translation.save': 'string';

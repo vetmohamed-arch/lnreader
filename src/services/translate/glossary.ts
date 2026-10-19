@@ -22,6 +22,13 @@ export const parseGlossary = (text: string): GlossaryEntry[] =>
       const to = line.slice(at + 1).trim();
       return from && to ? [{ from, to }] : [];
     })
+    // First entry for a term wins, so callers can put overrides first.
+    .filter(
+      (entry, index, all) =>
+        all.findIndex(
+          other => other.from.toLowerCase() === entry.from.toLowerCase(),
+        ) === index,
+    )
     // Longest first, so "Azure Dragon Sect" wins over "Dragon".
     .sort((a, b) => b.from.length - a.from.length);
 

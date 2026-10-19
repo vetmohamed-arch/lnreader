@@ -10,6 +10,10 @@ import { useChapterGeneralSettings, useTheme } from '@hooks/persisted';
 import { getString } from '@i18n/translations';
 import { showToast } from '@utils/showToast';
 import ReaderSheetPreferenceItem from './ReaderSheetPreferenceItem';
+import { BUILTIN_GLOSSARY } from '@services/translate/builtinGlossary';
+import { parseGlossary } from '@services/translate/glossary';
+
+const BUILTIN_TERM_COUNT = parseGlossary(BUILTIN_GLOSSARY).length;
 
 const TranslationTab: React.FC = () => {
   const theme = useTheme();
@@ -18,6 +22,7 @@ const TranslationTab: React.FC = () => {
     translationBilingual,
     translateOnDownload,
     translationGlossary,
+    translationBuiltinGlossary,
     setChapterGeneralSettings,
   } = useChapterGeneralSettings();
   const [glossary, setGlossary] = useState(translationGlossary ?? '');
@@ -65,6 +70,20 @@ const TranslationTab: React.FC = () => {
       <List.SubHeader theme={theme}>
         {getString('readerScreen.translation.glossary')}
       </List.SubHeader>
+      <ReaderSheetPreferenceItem
+        label={getString('readerScreen.translation.builtinGlossary')}
+        description={getString(
+          'readerScreen.translation.builtinGlossaryDescription',
+          { count: BUILTIN_TERM_COUNT },
+        )}
+        value={translationBuiltinGlossary !== false}
+        onPress={() =>
+          setChapterGeneralSettings({
+            translationBuiltinGlossary: translationBuiltinGlossary === false,
+          })
+        }
+        theme={theme}
+      />
       <View style={styles.glossary}>
         <Text style={[styles.description, { color: theme.onSurfaceVariant }]}>
           {getString('readerScreen.translation.glossaryDescription')}

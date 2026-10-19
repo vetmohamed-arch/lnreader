@@ -12,6 +12,14 @@ import {
 } from './microsoftTranslator';
 import { translateWithGoogle } from './googleTranslator';
 import { applyGlossary, glossaryKey, parseGlossary } from './glossary';
+import { BUILTIN_GLOSSARY } from './builtinGlossary';
+
+/**
+ * The glossary actually used: the user's lines first so they win over a
+ * built-in entry for the same term.
+ */
+export const effectiveGlossary = (user: string, useBuiltin: boolean) =>
+  useBuiltin ? `${user}\n${BUILTIN_GLOSSARY}` : user;
 
 export type TranslatedPart =
   | { html: string }
@@ -120,7 +128,10 @@ export const getTranslationSettings = () => {
   );
   return {
     translateOnDownload: Boolean(settings?.translateOnDownload),
-    glossary: settings?.translationGlossary ?? '',
+    glossary: effectiveGlossary(
+      settings?.translationGlossary ?? '',
+      settings?.translationBuiltinGlossary !== false,
+    ),
     bilingual: Boolean(settings?.translationBilingual),
   };
 };

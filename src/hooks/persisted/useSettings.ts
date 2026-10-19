@@ -201,6 +201,8 @@ export interface ChapterGeneralSettings {
   translateOnDownload: boolean;
   /** One `term = translation` per line. */
   translationGlossary: string;
+  /** Also apply the bundled cultivation-term glossary. */
+  translationBuiltinGlossary: boolean;
 }
 
 export interface ReaderTheme {
@@ -332,6 +334,7 @@ export const initialChapterGeneralSettings: ChapterGeneralSettings = {
   translationBilingual: false,
   translateOnDownload: false,
   translationGlossary: '',
+  translationBuiltinGlossary: true,
 };
 
 export const initialChapterReaderSettings: ChapterReaderSettings = {
