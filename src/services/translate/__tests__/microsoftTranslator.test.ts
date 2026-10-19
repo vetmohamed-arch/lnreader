@@ -1,4 +1,8 @@
-import { splitHtml, translateHtml } from '../microsoftTranslator';
+import {
+  extractParagraphs,
+  translateHtml,
+  translateTexts,
+} from '../microsoftTranslator';
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch as unknown as typeof fetch;
@@ -6,58 +10,72 @@ global.fetch = mockFetch as unknown as typeof fetch;
 const response = (body: unknown, status = 200) => ({
   ok: status >= 200 && status < 300,
   status,
-  text: async () => String(body),
   json: async () => body,
 });
 
-describe('splitHtml', () => {
-  it('splits only at block boundaries and keeps every character', () => {
-    const html = '<p>one</p><p>two</p><p>three</p>';
-    const chunks = splitHtml(html, 12);
-    expect(chunks).toEqual(['<p>one</p>', '<p>two</p>', '<p>three</p>']);
-    expect(chunks.join('')).toBe(html);
-  });
+const translations = (...texts: string[]) =>
+  texts.map(text => ({ translations: [{ text }] }));
 
-  it('keeps small chapters in one chunk', () => {
-    expect(splitHtml('<p>a</p><br><p>b</p>')).toHaveLength(1);
+describe('extractParagraphs', () => {
+  it('turns block HTML into plain-text paragraphs and keeps images', () => {
+    expect(
+      extractParagraphs(
+        '<p>Hello <b>world</b> &amp; you</p><br><img src="a.png"><p>  </p><div>Bye&nbsp;now</div>',
+      ),
+    ).toEqual([
+      { text: 'Hello world & you' },
+      { html: '<img src="a.png">' },
+      { text: 'Bye now' },
+    ]);
   });
 });
 
 describe('translateHtml', () => {
   beforeEach(() => mockFetch.mockReset());
 
-  it('sends chapter HTML and joins the translated chunks', async () => {
-    mockFetch
-      .mockResolvedValueOnce(response('token'))
-      .mockResolvedValueOnce(
-        response([{ translations: [{ text: '<p>مرحبا</p>' }] }]),
-      );
-
-    await expect(translateHtml('<p>Hello</p>')).resolves.toBe('<p>مرحبا</p>');
-
-    const [url, init] = mockFetch.mock.calls[1];
-    expect(url).toContain('to=ar');
-    expect(url).toContain('textType=html');
-    expect(init.headers.Authorization).toBe('Bearer token');
-    expect(JSON.parse(init.body)).toEqual([{ Text: '<p>Hello</p>' }]);
-  });
-
-  it('refreshes the token once when it has expired', async () => {
-    mockFetch
-      .mockResolvedValueOnce(response('', 401))
-      .mockResolvedValueOnce(response('fresh'))
-      .mockResolvedValueOnce(
-        response([{ translations: [{ text: '<p>تم</p>' }] }]),
-      );
-
-    await expect(translateHtml('<p>Done</p>')).resolves.toBe('<p>تم</p>');
-    expect(mockFetch.mock.calls[2][1].headers.Authorization).toBe(
-      'Bearer fresh',
+  it('posts plain strings without a token and rebuilds escaped paragraphs', async () => {
+    mockFetch.mockResolvedValueOnce(
+      response(translations('مرحبا <عالم>', 'وداعا')),
     );
+
+    await expect(
+      translateHtml('<p>Hello <i>world</i></p><img src="x"><p>Bye</p>'),
+    ).resolves.toBe('<p>مرحبا &lt;عالم&gt;</p><img src="x"><p>وداعا</p>');
+
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(url).toBe(
+      'https://edge.microsoft.com/translate/translatetext?from=&to=ar&isEnterpriseClient=false',
+    );
+    expect(init.method).toBe('POST');
+    expect(init.headers.Authorization).toBeUndefined();
+    expect(JSON.parse(init.body)).toEqual(['Hello world', 'Bye']);
   });
 
-  it('throws when the service fails', async () => {
-    mockFetch.mockResolvedValueOnce(response('', 500));
-    await expect(translateHtml('<p>x</p>')).rejects.toThrow('500');
+  it('accepts plain string items in the response', async () => {
+    mockFetch.mockResolvedValueOnce(response(['تم']));
+    await expect(translateHtml('<p>Done</p>')).resolves.toBe('<p>تم</p>');
+  });
+
+  it('throws with the status when the service fails', async () => {
+    mockFetch.mockResolvedValueOnce(response('', 400));
+    await expect(translateHtml('<p>x</p>')).rejects.toThrow('400');
+  });
+});
+
+describe('translateTexts', () => {
+  beforeEach(() => mockFetch.mockReset());
+
+  it('splits large chapters into requests under the size limit', async () => {
+    const texts = Array.from({ length: 3 }, (_, i) => `${i}`.repeat(25000));
+    mockFetch.mockImplementation(async (_url, init) =>
+      response(JSON.parse(init.body).map((t: string) => `ar-${t.length}`)),
+    );
+
+    await expect(translateTexts(texts)).resolves.toEqual([
+      'ar-25000',
+      'ar-25000',
+      'ar-25000',
+    ]);
+    expect(mockFetch).toHaveBeenCalledTimes(3);
   });
 });

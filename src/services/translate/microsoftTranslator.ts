@@ -1,93 +1,121 @@
 /**
- * Translates chapter HTML with Microsoft Translator, using the same keyless
- * token endpoint that Microsoft Edge's built-in page translation uses.
+ * Translates chapter HTML with Microsoft Translator through the keyless
+ * endpoint Microsoft Edge's built-in page translation uses. Edge retired its
+ * token flow (`/translate/auth` now answers 404); `translatetext` needs no
+ * token. It is undocumented, so it may change again.
  */
 
-const AUTH_URL = 'https://edge.microsoft.com/translate/auth';
-const TRANSLATE_URL =
-  'https://api-edge.cognitive.microsofttranslator.com/translate';
+const TRANSLATE_URL = 'https://edge.microsoft.com/translate/translatetext';
 
-// Tokens are valid for ~10 minutes; refresh a bit earlier.
-const TOKEN_TTL_MS = 8 * 60 * 1000;
-// The API accepts up to 50k characters per request; stay under it.
-const MAX_CHUNK_CHARS = 40000;
+// The endpoint rejects requests over 1000 strings or 50k characters.
+const MAX_BATCH_ITEMS = 1000;
+const MAX_BATCH_CHARS = 40000;
 
-// Edge's endpoints expect a browser; okhttp's default user agent can be refused.
 const BROWSER_HEADERS = {
   'User-Agent':
     'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36 EdgA/124.0',
 };
 
-let cachedToken: { value: string; time: number } | undefined;
+type TranslationItem = { translations?: { text: string }[] } | string;
 
-const getToken = async (force = false) => {
-  if (!force && cachedToken && Date.now() - cachedToken.time < TOKEN_TTL_MS) {
-    return cachedToken.value;
-  }
-  const res = await fetch(AUTH_URL, { headers: BROWSER_HEADERS });
-  if (!res.ok) {
-    throw new Error(`Translator auth failed (${res.status})`);
-  }
-  cachedToken = { value: (await res.text()).trim(), time: Date.now() };
-  return cachedToken.value;
-};
-
-const requestTranslation = async (
-  texts: string[],
-  to: string,
-  retry = true,
-): Promise<string[]> => {
-  const token = await getToken(!retry);
+const requestTranslation = async (texts: string[], to: string) => {
   const res = await fetch(
-    `${TRANSLATE_URL}?api-version=3.0&textType=html&to=${to}`,
+    `${TRANSLATE_URL}?from=&to=${to}&isEnterpriseClient=false`,
     {
       method: 'POST',
-      headers: {
-        ...BROWSER_HEADERS,
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(texts.map(text => ({ Text: text }))),
+      headers: { ...BROWSER_HEADERS, 'Content-Type': 'application/json' },
+      body: JSON.stringify(texts),
     },
   );
-  if (res.status === 401 && retry) {
-    return requestTranslation(texts, to, false);
-  }
   if (!res.ok) {
     throw new Error(`Translation failed (${res.status})`);
   }
-  const data: { translations: { text: string }[] }[] = await res.json();
-  return data.map(item => item.translations[0]?.text ?? '');
+  const data: TranslationItem[] = await res.json();
+  return data.map(item =>
+    typeof item === 'string' ? item : item.translations?.[0]?.text ?? '',
+  );
 };
 
-/**
- * Splits HTML at block boundaries so no chunk cuts through a tag. A single
- * block larger than the limit is sent on its own.
- */
-export const splitHtml = (html: string, maxChars = MAX_CHUNK_CHARS) => {
-  const blocks = html.split(
-    /(?<=<\/(?:p|div|h[1-6]|li|blockquote)>|<br\s*\/?>)/i,
-  );
-  const chunks: string[] = [];
-  let current = '';
-  for (const block of blocks) {
-    if (current && current.length + block.length > maxChars) {
-      chunks.push(current);
-      current = '';
+const ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+};
+
+const decodeEntities = (text: string) =>
+  text.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, code: string) => {
+    if (code[0] === '#') {
+      const num =
+        code[1].toLowerCase() === 'x'
+          ? parseInt(code.slice(2), 16)
+          : parseInt(code.slice(1), 10);
+      return Number.isNaN(num) ? match : String.fromCodePoint(num);
     }
-    current += block;
+    return ENTITIES[code.toLowerCase()] ?? match;
+  });
+
+const escapeHtml = (text: string) =>
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+type Paragraph = { text: string } | { html: string };
+
+/**
+ * Splits chapter HTML into paragraphs of plain text. Images are kept as raw
+ * HTML so they still render; other markup is dropped.
+ */
+
+export const extractParagraphs = (html: string): Paragraph[] =>
+  html
+    .split(/<\/(?:p|div|h[1-6]|li|blockquote)>|<br\s*\/?>/i)
+    .flatMap((block): Paragraph[] => {
+      const images = block.match(/<img\b[^>]*>/gi)?.join('') ?? '';
+      const text = decodeEntities(block.replace(/<[^>]*>/g, ''))
+        .replace(/\s+/g, ' ')
+        .trim();
+      return [
+        ...(images ? [{ html: images }] : []),
+        ...(text ? [{ text }] : []),
+      ];
+    });
+
+export const translateTexts = async (texts: string[], to = 'ar') => {
+  const translated: string[] = [];
+  let batch: string[] = [];
+  let size = 0;
+  const flush = async () => {
+    if (batch.length) {
+      translated.push(...(await requestTranslation(batch, to)));
+    }
+    batch = [];
+    size = 0;
+  };
+  for (const text of texts) {
+    if (
+      batch.length >= MAX_BATCH_ITEMS ||
+      (batch.length && size + text.length > MAX_BATCH_CHARS)
+    ) {
+      await flush();
+    }
+    batch.push(text);
+    size += text.length;
   }
-  if (current) {
-    chunks.push(current);
-  }
-  return chunks;
+  await flush();
+  return translated;
 };
 
 export const translateHtml = async (html: string, to = 'ar') => {
-  const chunks = splitHtml(html);
-  const translated: string[] = [];
-  for (const chunk of chunks) {
-    translated.push(...(await requestTranslation([chunk], to)));
-  }
-  return translated.join('');
+  const parts = extractParagraphs(html);
+  const texts = parts.flatMap(part => ('text' in part ? [part.text] : []));
+  const translated = await translateTexts(texts, to);
+  let i = 0;
+  return parts
+    .map(part =>
+      'text' in part
+        ? `<p>${escapeHtml(translated[i++] ?? '')}</p>`
+        : part.html,
+    )
+    .join('');
 };
