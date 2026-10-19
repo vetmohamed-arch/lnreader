@@ -706,7 +706,20 @@
     "searchMinLength": "Enter at least %{count} characters to search",
     "searchPlaceholder": "Search chapter",
     "translateToArabic": "Translate to Arabic",
-    "translationFailed": "Translation failed, showing the original text"
+    "translationFailed": "Translation failed, showing the original text",
+    "translation": {
+      "title": "Translation",
+      "bilingual": "Show original text",
+      "bilingualDescription": "Each paragraph in English with its translation under it",
+      "onDownload": "Translate when downloading",
+      "onDownloadDescription": "Downloaded chapters open in Arabic, even offline",
+      "glossary": "Glossary",
+      "glossaryDescription": "One term per line, like: Dantian = الدانتيان. Terms always translate this way. An Arabic term fixes a recurring mistake.",
+      "glossaryPlaceholder": "Qi = تشي\nNine Star Hegemon Body Art = فن جسد المهيمن ذو النجوم التسعة",
+      "save": "Save glossary",
+      "saved": "Glossary saved",
+      "engine": "Uses Microsoft Edge translation, and Google when Edge fails."
+    }
   },
   "readerSettings": {
     "autoScrollInterval": "Scroll interval (seconds)",

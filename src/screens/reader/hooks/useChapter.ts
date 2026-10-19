@@ -15,8 +15,11 @@ import {
   useTracker,
 } from '@hooks/persisted';
 import { fetchChapter, fetchPage } from '@services/plugin/fetch';
-import { NOVEL_STORAGE, TRANSLATION_STORAGE } from '@utils/Storages';
-import { translateHtml } from '@services/translate/microsoftTranslator';
+import { NOVEL_STORAGE } from '@utils/Storages';
+import {
+  getChapterTranslation,
+  renderTranslation,
+} from '@services/translate/chapterTranslation';
 import {
   RefObject,
   useCallback,
@@ -78,6 +81,8 @@ export default function useChapter(
     pageReader,
     pageReaderInvertVolumeButtons,
     translateToArabic,
+    translationBilingual,
+    translationGlossary,
   } = useChapterGeneralSettings();
   const { incognitoMode } = useLibrarySettings();
   const { timeTrackingEnabled, inactivityTimeoutMs } = useAppSettings();
@@ -104,7 +109,15 @@ export default function useChapter(
   const adjacentChapterRef = useRef<AdjacentChapters>(NO_ADJACENT_CHAPTERS);
   const excludedScanlatorsRef = useRef(novelSettings?.excludedScanlators);
   const hiddenRef = useRef(hidden);
-  const translateRef = useRef(Boolean(translateToArabic));
+  const translationSettings = useMemo(
+    () => ({
+      enabled: Boolean(translateToArabic),
+      bilingual: Boolean(translationBilingual),
+      glossary: translationGlossary ?? '',
+    }),
+    [translateToArabic, translationBilingual, translationGlossary],
+  );
+  const translateRef = useRef(translationSettings);
   /** Increments on every load so a superseded load can never publish state. */
   const loadIdRef = useRef(0);
 
@@ -186,30 +199,24 @@ export default function useChapter(
    */
   const loadTranslatedHtml = useCallback(
     async (chap: ChapterInfo, html: string) => {
-      const dir = `${TRANSLATION_STORAGE}/v2/ar/${novel.pluginId}/${chap.novelId}`;
-      const filePath = `${dir}/${chap.id}.html`;
-      const wrap = (body: string) =>
-        `<div class="translated-ar" dir="rtl" lang="ar">${body}</div>`;
+      const { bilingual, glossary } = translateRef.current;
       try {
-        return wrap(await NativeFile.readFile(filePath));
-      } catch {
-        // Not translated yet.
-      }
-      let translated: string;
-      try {
-        translated = await translateHtml(html, 'ar');
+        const parts = await getChapterTranslation(
+          {
+            pluginId: novel.pluginId,
+            novelId: chap.novelId,
+            chapterId: chap.id,
+          },
+          html,
+          glossary,
+        );
+        return renderTranslation(parts, bilingual);
       } catch (e: any) {
         showToast(
           `${getString('readerScreen.translationFailed')}: ${e?.message ?? e}`,
         );
         return html;
       }
-      // A failed save only costs offline access; still show the translation.
-      try {
-        await NativeFile.mkdir(dir);
-        await NativeFile.writeFile(filePath, translated);
-      } catch {}
-      return wrap(translated);
     },
     [novel.pluginId],
   );
@@ -239,7 +246,7 @@ export default function useChapter(
           chapterTextCache.remove(chap.id);
           return sanitized;
         }
-        return translateRef.current
+        return translateRef.current.enabled
           ? loadTranslatedHtml(chap, sanitized)
           : sanitized;
       });
@@ -573,15 +580,21 @@ export default function useChapter(
   // Switching translation on or off invalidates every cached chapter text,
   // including prefetched neighbours.
   useEffect(() => {
-    const enabled = Boolean(translateToArabic);
-    if (translateRef.current === enabled) {
+    const previous = translateRef.current;
+    if (
+      previous.enabled === translationSettings.enabled &&
+      (!previous.enabled ||
+        (previous.bilingual === translationSettings.bilingual &&
+          previous.glossary === translationSettings.glossary))
+    ) {
+      translateRef.current = translationSettings;
       return;
     }
-    translateRef.current = enabled;
+    translateRef.current = translationSettings;
     chapterTextCache.clear();
     setLoading(true);
     getChapter();
-  }, [translateToArabic, chapterTextCache, getChapter]);
+  }, [translationSettings, chapterTextCache, getChapter]);
 
   const refetch = useCallback(() => {
     chapterTextCache.remove(chapterRef.current.id);

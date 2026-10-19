@@ -29,6 +29,7 @@ import ReaderTextAlignSelector from './ReaderTextAlignSelector';
 import ReaderValueChange from './ReaderValueChange';
 import ReaderFontPicker from './ReaderFontPicker';
 import TTSTab from './TTSTab';
+import TranslationTab from './TranslationTab';
 import { BottomSheetModalMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
 import { StringMap } from '@i18n/types';
 
@@ -219,6 +220,10 @@ const routes = [
   { key: 'readerTab', title: getString('readerSettings.title') },
   { key: 'generalTab', title: getString('generalSettings') },
   { key: 'ttsTab', title: 'TTS' },
+  {
+    key: 'translationTab',
+    title: getString('readerScreen.translation.title'),
+  },
 ];
 
 const renderLazyPlaceholder = () => <View style={styles.flex} />;
@@ -237,6 +242,7 @@ const ReaderBottomSheetV2: React.FC<ReaderBottomSheetV2Props> = ({
         readerTab: ReaderTab,
         generalTab: GeneralTab,
         ttsTab: TTSTab,
+        translationTab: TranslationTab,
       }),
     [],
   );

@@ -602,6 +602,17 @@ export interface StringMap {
   'readerScreen.searchPlaceholder': 'string';
   'readerScreen.translateToArabic': 'string';
   'readerScreen.translationFailed': 'string';
+  'readerScreen.translation.title': 'string';
+  'readerScreen.translation.bilingual': 'string';
+  'readerScreen.translation.bilingualDescription': 'string';
+  'readerScreen.translation.onDownload': 'string';
+  'readerScreen.translation.onDownloadDescription': 'string';
+  'readerScreen.translation.glossary': 'string';
+  'readerScreen.translation.glossaryDescription': 'string';
+  'readerScreen.translation.glossaryPlaceholder': 'string';
+  'readerScreen.translation.save': 'string';
+  'readerScreen.translation.saved': 'string';
+  'readerScreen.translation.engine': 'string';
   'readerSettings.autoScrollInterval': 'string';
   'readerSettings.autoScrollOffset': 'string';
   'readerSettings.backgroundColor': 'string';

@@ -17,6 +17,11 @@ import type {
 import NativeFile from '@modules/native-file';
 import { eq } from 'drizzle-orm';
 import { parseDownloadCheckpoint } from './downloadCheckpoint';
+import {
+  getChapterTranslation,
+  getTranslationSettings,
+} from '@services/translate/chapterTranslation';
+import { sanitizeChapterText } from '@screens/reader/utils/sanitizeChapterText';
 
 const createChapterFolder = async (
   path: string,
@@ -39,7 +44,7 @@ const downloadFiles = async (
   plugin: Plugin,
   novelId: number,
   chapterId: number,
-): Promise<void> => {
+): Promise<string> => {
   const folder = await createChapterFolder(NOVEL_STORAGE, {
     pluginId: plugin.id,
     novelId,
@@ -61,7 +66,30 @@ const downloadFiles = async (
       }
     }
   }
-  await NativeFile.writeFile(folder + '/index.html', loadedCheerio.html());
+  const savedHtml = loadedCheerio.html();
+  await NativeFile.writeFile(folder + '/index.html', savedHtml);
+  return savedHtml;
+};
+
+/**
+ * Translates a freshly downloaded chapter so it opens in Arabic offline. The
+ * reader sanitizes before translating, so this does too. A failure is left for
+ * the reader to retry when the chapter is opened.
+ */
+const translateDownloadedChapter = async (
+  html: string,
+  novel: { id: number; name: string; pluginId: string },
+  chapter: { id: number; name: string },
+) => {
+  const { translateOnDownload, glossary } = getTranslationSettings();
+  if (!translateOnDownload) return;
+  try {
+    await getChapterTranslation(
+      { pluginId: novel.pluginId, novelId: novel.id, chapterId: chapter.id },
+      sanitizeChapterText(novel.pluginId, novel.name, chapter.name, html),
+      glossary,
+    );
+  } catch {}
 };
 
 const downloadChapter = async (chapterId: number) => {
@@ -82,7 +110,12 @@ const downloadChapter = async (chapterId: number) => {
   }
   const chapterText = await plugin.parseChapter(chapter.path);
   if (chapterText && chapterText.length) {
-    await downloadFiles(chapterText, plugin, novel.id, chapter.id);
+    const savedHtml = await downloadFiles(
+      chapterText,
+      plugin,
+      novel.id,
+      chapter.id,
+    );
 
     await dbManager.write(async tx => {
       tx.update(chapterSchema)
@@ -90,6 +123,8 @@ const downloadChapter = async (chapterId: number) => {
         .where(eq(chapterSchema.id, chapter.id))
         .run();
     });
+
+    await translateDownloadedChapter(savedHtml, novel, chapter);
 
     await sleep(getChapterDownloadCooldownMs());
   } else {

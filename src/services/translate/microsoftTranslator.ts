@@ -57,10 +57,10 @@ const decodeEntities = (text: string) =>
     return ENTITIES[code.toLowerCase()] ?? match;
   });
 
-const escapeHtml = (text: string) =>
+export const escapeHtml = (text: string) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-type Paragraph = { text: string; tag: string } | { html: string };
+export type Paragraph = { text: string; tag: string } | { html: string };
 
 // Block tags kept around translated text; anything else becomes a paragraph.
 const KEPT_TAG = /<(h[1-6]|blockquote)\b/i;
@@ -108,18 +108,4 @@ export const translateTexts = async (texts: string[], to = 'ar') => {
   }
   await flush();
   return translated;
-};
-
-export const translateHtml = async (html: string, to = 'ar') => {
-  const parts = extractParagraphs(html);
-  const texts = parts.flatMap(part => ('text' in part ? [part.text] : []));
-  const translated = await translateTexts(texts, to);
-  let i = 0;
-  return parts
-    .map(part =>
-      'text' in part
-        ? `<${part.tag}>${escapeHtml(translated[i++] ?? '')}</${part.tag}>`
-        : part.html,
-    )
-    .join('');
 };

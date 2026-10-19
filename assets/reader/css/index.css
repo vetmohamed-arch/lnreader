@@ -89,6 +89,15 @@ body {
   border-inline-start: 3px solid var(--theme-primary);
 }
 
+/* Bilingual view: the original paragraph above its translation. */
+.translated-ar .translation-original {
+  direction: ltr;
+  text-align: left;
+  font-size: 0.85em;
+  opacity: 0.6;
+  margin-bottom: 0.3em;
+}
+
 #LNReader-chapter {
   padding-left: var(--readerSettings-padding);
   padding-right: var(--readerSettings-padding);

@@ -197,6 +197,10 @@ export interface ChapterGeneralSettings {
   pageReaderInvertVolumeButtons: boolean;
   pageReaderDisableAnimation: boolean;
   translateToArabic: boolean;
+  translationBilingual: boolean;
+  translateOnDownload: boolean;
+  /** One `term = translation` per line. */
+  translationGlossary: string;
 }
 
 export interface ReaderTheme {
@@ -325,6 +329,9 @@ export const initialChapterGeneralSettings: ChapterGeneralSettings = {
   pageReaderInvertVolumeButtons: false,
   pageReaderDisableAnimation: false,
   translateToArabic: false,
+  translationBilingual: false,
+  translateOnDownload: false,
+  translationGlossary: '',
 };
 
 export const initialChapterReaderSettings: ChapterReaderSettings = {

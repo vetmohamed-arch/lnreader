@@ -1,8 +1,4 @@
-import {
-  extractParagraphs,
-  translateHtml,
-  translateTexts,
-} from '../microsoftTranslator';
+import { extractParagraphs, translateTexts } from '../microsoftTranslator';
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch as unknown as typeof fetch;
@@ -32,17 +28,16 @@ describe('extractParagraphs', () => {
   });
 });
 
-describe('translateHtml', () => {
+describe('translateTexts', () => {
   beforeEach(() => mockFetch.mockReset());
 
-  it('posts plain strings without a token and rebuilds escaped paragraphs', async () => {
-    mockFetch.mockResolvedValueOnce(
-      response(translations('مرحبا <عالم>', 'وداعا')),
-    );
+  it('posts plain strings without a token', async () => {
+    mockFetch.mockResolvedValueOnce(response(translations('مرحبا', 'وداعا')));
 
-    await expect(
-      translateHtml('<p>Hello <i>world</i></p><img src="x"><p>Bye</p>'),
-    ).resolves.toBe('<p>مرحبا &lt;عالم&gt;</p><img src="x"><p>وداعا</p>');
+    await expect(translateTexts(['Hello world', 'Bye'])).resolves.toEqual([
+      'مرحبا',
+      'وداعا',
+    ]);
 
     const [url, init] = mockFetch.mock.calls[0];
     expect(url).toBe(
@@ -55,16 +50,16 @@ describe('translateHtml', () => {
 
   it('accepts plain string items in the response', async () => {
     mockFetch.mockResolvedValueOnce(response(['تم']));
-    await expect(translateHtml('<p>Done</p>')).resolves.toBe('<p>تم</p>');
+    await expect(translateTexts(['Done'])).resolves.toEqual(['تم']);
   });
 
   it('throws with the status when the service fails', async () => {
     mockFetch.mockResolvedValueOnce(response('', 400));
-    await expect(translateHtml('<p>x</p>')).rejects.toThrow('400');
+    await expect(translateTexts(['x'])).rejects.toThrow('400');
   });
 });
 
-describe('translateTexts', () => {
+describe('translateTexts batching', () => {
   beforeEach(() => mockFetch.mockReset());
 
   it('splits large chapters into requests under the size limit', async () => {
