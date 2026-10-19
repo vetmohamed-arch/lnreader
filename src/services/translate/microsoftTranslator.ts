@@ -12,13 +12,19 @@ const TOKEN_TTL_MS = 8 * 60 * 1000;
 // The API accepts up to 50k characters per request; stay under it.
 const MAX_CHUNK_CHARS = 40000;
 
+// Edge's endpoints expect a browser; okhttp's default user agent can be refused.
+const BROWSER_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36 EdgA/124.0',
+};
+
 let cachedToken: { value: string; time: number } | undefined;
 
 const getToken = async (force = false) => {
   if (!force && cachedToken && Date.now() - cachedToken.time < TOKEN_TTL_MS) {
     return cachedToken.value;
   }
-  const res = await fetch(AUTH_URL);
+  const res = await fetch(AUTH_URL, { headers: BROWSER_HEADERS });
   if (!res.ok) {
     throw new Error(`Translator auth failed (${res.status})`);
   }
@@ -37,6 +43,7 @@ const requestTranslation = async (
     {
       method: 'POST',
       headers: {
+        ...BROWSER_HEADERS,
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },

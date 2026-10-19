@@ -193,18 +193,24 @@ export default function useChapter(
       } catch {
         // Not translated yet.
       }
+      let translated: string;
       try {
-        const translated = `<div dir="rtl" lang="ar" style="text-align: right">${await translateHtml(
+        translated = `<div dir="rtl" lang="ar" style="text-align: right">${await translateHtml(
           html,
           'ar',
         )}</div>`;
-        await NativeFile.mkdir(dir);
-        await NativeFile.writeFile(filePath, translated);
-        return translated;
-      } catch {
-        showToast(getString('readerScreen.translationFailed'));
+      } catch (e: any) {
+        showToast(
+          `${getString('readerScreen.translationFailed')}: ${e?.message ?? e}`,
+        );
         return html;
       }
+      // A failed save only costs offline access; still show the translation.
+      try {
+        await NativeFile.mkdir(dir);
+        await NativeFile.writeFile(filePath, translated);
+      } catch {}
+      return translated;
     },
     [novel.pluginId],
   );
